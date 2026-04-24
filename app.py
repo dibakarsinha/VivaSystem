@@ -94,16 +94,18 @@ reg_no = st.text_input("Enter Registration Number")
 if st.button("Start Viva"):
     if name and reg_no:
         st.session_state.start_time = time.time()
+
         if len(data) >= 5:
-             st.session_state.questions = data.sample(5)
+            st.session_state.questions = data.sample(5)
         elif len(data) > 0:
-             st.session_state.questions = data.sample(len(data))
-             st.warning(f"Only {len(data)} questions available. Showing all.")
+            st.session_state.questions = data.sample(len(data))
+            st.warning(f"Only {len(data)} questions available. Showing all.")
         else:
-             st.error("❌ No questions found in Google Sheet!")
-             st.stop()
-     else:
-         st.warning("Please enter all details")
+            st.error("❌ No questions found in Google Sheet!")
+            st.stop()
+
+    else:
+        st.warning("Please enter all details")
 
 # -------------------------------
 # ⏱️ TIMER DISPLAY
