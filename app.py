@@ -1,82 +1,168 @@
 import streamlit as st
 import pandas as pd
-import random
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+import time
 from datetime import datetime
-import openai  # or Gemini
+from oauth2client.service_account import ServiceAccountCredentials
+from streamlit.components.v1 import html
 
-# 🔐 Google Sheets setup
+# -------------------------------
+# 🎯 PAGE CONFIG
+# -------------------------------
+st.set_page_config(page_title="AI Viva System", layout="wide")
+
+st.markdown("""
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------
+# 🔐 GOOGLE SHEETS VIA SECRETS
+# -------------------------------
 scope = ["https://spreadsheets.google.com/feeds",
          "https://www.googleapis.com/auth/drive"]
 
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(
+    st.secrets["gcp_service_account"], scope
+)
+
 client = gspread.authorize(creds)
 
 sheet = client.open("VivaSystem")
 q_sheet = sheet.worksheet("questions")
 r_sheet = sheet.worksheet("responses")
 
-data = pd.DataFrame(q_sheet.get_all_records())
+# Load questions
+@st.cache_data
+def load_data():
+    return pd.DataFrame(q_sheet.get_all_records())
 
-# 🎯 Generate random questions
+data = load_data()
+
+# -------------------------------
+# 🖥️ FULLSCREEN + ANTI-CHEATING
+# -------------------------------
+html("""
+<script>
+function openFullscreen() {
+    let elem = document.documentElement;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+    }
+}
+
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        alert("⚠️ Tab switched! This activity is monitored.");
+    }
+});
+</script>
+
+<button onclick="openFullscreen()" style="padding:10px;font-size:16px;">
+Enter Full Screen
+</button>
+""")
+
+# -------------------------------
+# ⏱️ TIMER CONFIG
+# -------------------------------
+DURATION = 600  # 10 minutes
+
+if "start_time" not in st.session_state:
+    st.session_state.start_time = None
+
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
+
 if "questions" not in st.session_state:
-    st.session_state.questions = data.sample(5)
+    st.session_state.questions = None
 
-st.title("🎓 AI-Based Viva System")
+# -------------------------------
+# 🎓 UI
+# -------------------------------
+st.title("🎓 AI-Based Time-Bound Viva System")
 
-# 👤 Student info
-name = st.text_input("Student Name")
-reg_no = st.text_input("Registration Number")
+name = st.text_input("Enter Name")
+reg_no = st.text_input("Enter Registration Number")
 
+# -------------------------------
+# ▶️ START VIVA
+# -------------------------------
+if st.button("Start Viva"):
+    if name and reg_no:
+        st.session_state.start_time = time.time()
+        st.session_state.questions = data.sample(5)
+    else:
+        st.warning("Please enter all details")
+
+# -------------------------------
+# ⏱️ TIMER DISPLAY
+# -------------------------------
+remaining = None
+
+if st.session_state.start_time:
+    elapsed = time.time() - st.session_state.start_time
+    remaining = int(DURATION - elapsed)
+
+    if remaining > 0:
+        mins = remaining // 60
+        secs = remaining % 60
+        st.warning(f"⏳ Time Left: {mins:02d}:{secs:02d}")
+    else:
+        st.error("⛔ Time Over! Auto-submitting...")
+        st.session_state.submitted = True
+
+# -------------------------------
+# ❓ QUESTIONS
+# -------------------------------
 answers = {}
 
-# 📌 Display questions
-for i, row in st.session_state.questions.iterrows():
-    st.subheader(f"Q{i+1}: {row['question']}")
-    answers[row["id"]] = st.text_area("Your Answer", key=i)
-
-# 🤖 AI Evaluation Function
-def evaluate_answer(question, model_answer, student_answer):
-    prompt = f"""
-    Evaluate the student's answer.
-
-    Question: {question}
-    Model Answer: {model_answer}
-    Student Answer: {student_answer}
-
-    Give:
-    Score out of 10
-    Feedback in 2 lines
-    """
-
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role":"user","content":prompt}]
-    )
-
-    return response['choices'][0]['message']['content']
-
-# 🚀 Submit
-if st.button("Submit Viva"):
+if st.session_state.questions is not None:
     for i, row in st.session_state.questions.iterrows():
+        st.subheader(f"Q{i+1}: {row['question']}")
+        answers[row["id"]] = st.text_area("Your Answer", key=i)
 
-        ai_result = evaluate_answer(
-            row["question"],
-            row["model_answer"],
-            answers[row["id"]]
-        )
+# -------------------------------
+# 🤖 AI EVALUATION (PLACEHOLDER)
+# -------------------------------
+def evaluate_answer(question, model_answer, student_answer):
+    if not student_answer.strip():
+        return "Score: 0/10 | Feedback: No answer"
+    else:
+        return "Score: 6/10 | Feedback: Average answer (placeholder)"
 
-        r_sheet.append_row([
-            str(datetime.now()),
-            name,
-            reg_no,
-            row["id"],
-            row["question"],
-            answers[row["id"]],
-            ai_result,   # AI output
-            "",          # final score (faculty)
-            ""           # remarks
-        ])
+# -------------------------------
+# 🚀 SUBMIT
+# -------------------------------
+if st.button("Submit Viva") or st.session_state.submitted:
 
-    st.success("✅ Viva submitted & AI evaluated!")
+    if st.session_state.questions is not None:
+
+        for i, row in st.session_state.questions.iterrows():
+
+            student_ans = answers.get(row["id"], "")
+
+            ai_result = evaluate_answer(
+                row["question"],
+                row.get("model_answer", ""),
+                student_ans
+            )
+
+            r_sheet.append_row([
+                str(datetime.now()),
+                name,
+                reg_no,
+                row["id"],
+                row["question"],
+                student_ans,
+                ai_result,
+                "",  # faculty score
+                ""   # remarks
+            ])
+
+        st.success("✅ Viva Submitted Successfully!")
+        st.session_state.submitted = True
+        st.stop()
