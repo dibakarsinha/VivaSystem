@@ -151,28 +151,39 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
     if st.session_state.questions is not None:
 
+        total_score = 0
+        max_score = 0
+        all_answers = []
+
         for i, row in st.session_state.questions.iterrows():
 
             student_ans = answers.get(row["id"], "")
 
-            ai_result = evaluate_answer(
-                row["question"],
-                row.get("model_answer", ""),
-                student_ans
-            )
+            # 👉 Simple scoring logic (replace with AI later)
+            if student_ans.strip():
+                score = 6   # placeholder score
+            else:
+                score = 0
 
-            r_sheet.append_row([
-                str(datetime.now()),
-                name,
-                reg_no,
-                row["id"],
-                row["question"],
-                student_ans,
-                ai_result,
-                "",  # faculty score
-                ""   # remarks
-            ])
+            total_score += score
+            max_score += 10
 
-        st.success("✅ Viva Submitted Successfully!")
+            # store answers as text (optional)
+            all_answers.append(f"Q{row['id']}: {student_ans}")
+
+        # Convert answers list → single string
+        answers_text = " | ".join(all_answers)
+
+        # ✅ SAVE ONLY ONE ROW
+        r_sheet.append_row([
+            str(datetime.now()),
+            name,
+            reg_no,
+            answers_text,
+            total_score,
+            max_score
+        ])
+
+        st.success(f"✅ Submitted! Total Score: {total_score}/{max_score}")
         st.session_state.submitted = True
         st.stop()
