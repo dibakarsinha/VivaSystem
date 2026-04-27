@@ -41,7 +41,8 @@ def load_data():
     return pd.DataFrame(q_sheet.get_all_records())
 
 data = load_data()
-
+st.write("DEBUG: Rows =", len(data))
+st.write(data)
 # -------------------------------
 # 🖥️ FULLSCREEN + ANTI-CHEATING
 # -------------------------------
