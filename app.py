@@ -64,6 +64,7 @@ reg_no = st.text_input("Enter Registration Number")
 # -------------------------------
 # 🖥️ FULLSCREEN BUTTON (WORKING)
 # -------------------------------
+tabSwitch = 0;
 html("""
 <script>
 function startViva() {
@@ -81,7 +82,7 @@ function startViva() {
         }
     });
 }
-tabSwitch = 0;
+
 // Tab switch warning
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
