@@ -32,7 +32,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 client = gspread.authorize(creds)
 
 # 👉 Recommended: use URL instead of name (avoids APIError)
-sheet = client.open_by_url("YOUR_GOOGLE_SHEET_URL")
+sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s/edit?gid=2087437842#gid=2087437842")
 
 q_sheet = sheet.worksheet("questions")
 r_sheet = sheet.worksheet("responses")
