@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 import time
-from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from streamlit.components.v1 import html
@@ -54,9 +53,6 @@ if "submitted" not in st.session_state:
 if "questions" not in st.session_state:
     st.session_state.questions = None
 
-if "tab_switch_count" not in st.session_state:
-    st.session_state.tab_switch_count = 0
-
 # -------------------------------
 # 🎓 STUDENT INFO
 # -------------------------------
@@ -66,12 +62,10 @@ name = st.text_input("Enter Name")
 reg_no = st.text_input("Enter Registration Number")
 
 # -------------------------------
-# 🖥️ FULLSCREEN + TAB SWITCH JS
+# 🖥️ FULLSCREEN BUTTON (WORKING)
 # -------------------------------
 html("""
 <script>
-let tabSwitchCount = 0;
-
 function startViva() {
     let elem = document.body;
 
@@ -79,7 +73,7 @@ function startViva() {
         elem.requestFullscreen();
     }
 
-    // Trigger hidden Streamlit button
+    // Find and click Streamlit hidden button
     const buttons = window.parent.document.querySelectorAll("button");
     buttons.forEach(btn => {
         if (btn.innerText === "Start Viva Hidden") {
@@ -88,17 +82,10 @@ function startViva() {
     });
 }
 
-// Tab switch detection
+// Tab switch warning
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
-        tabSwitchCount += 1;
-
-        alert("⚠️ Tab switched! Count: " + tabSwitchCount);
-
-        // Store count in URL
-        const url = new URL(window.location);
-        url.searchParams.set("tab_switch", tabSwitchCount);
-        window.history.replaceState(null, "", url);
+        alert("⚠️ Tab switched! This activity is monitored.");
     }
 });
 </script>
@@ -115,7 +102,7 @@ document.addEventListener("visibilitychange", function() {
 </button>
 """, height=80)
 
-# Hidden button
+# Hidden button (triggered by JS)
 start_clicked = st.button("Start Viva Hidden")
 
 # -------------------------------
@@ -130,33 +117,15 @@ if start_clicked:
             st.stop()
 
         st.session_state.questions = data.sample(min(5, len(data)))
+
     else:
         st.warning("Please enter all details")
 
 # -------------------------------
-# 🔁 CAPTURE TAB SWITCH COUNT
-# -------------------------------
-params = st.query_params
-
-if "tab_switch" in params:
-    try:
-        st.session_state.tab_switch_count = int(params["tab_switch"])
-    except:
-        pass
-
-# Show count during viva
-if st.session_state.start_time:
-    st.warning(f"⚠️ Tab Switch Count: {st.session_state.tab_switch_count}")
-
-# -------------------------------
 # ⏱️ TIMER
 # -------------------------------
-# Auto refresh every second
-if st.session_state.start_time and not st.session_state.submitted:
-    st_autorefresh(interval=1000, key="timer_refresh")
-
-# Timer logic
-DURATION = 300
+DURATION = 600  # 10 minutes
+remaining = None
 
 if st.session_state.start_time:
     elapsed = time.time() - st.session_state.start_time
@@ -169,6 +138,7 @@ if st.session_state.start_time:
     else:
         st.error("⛔ Time Over! Auto-submitting...")
         st.session_state.submitted = True
+
 # -------------------------------
 # ❓ QUESTIONS
 # -------------------------------
@@ -183,7 +153,7 @@ if st.session_state.questions is not None:
         all_answers.append(f"Q{row['id']}: {ans}")
 
 # -------------------------------
-# 🧠 SCORING
+# 🤖 AI EVALUATION (PLACEHOLDER)
 # -------------------------------
 def evaluate_answer(ans, keywords):
     if not ans.strip():
@@ -207,6 +177,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
         total_score = 0
         max_score = 0
+
         all_answers = []
 
         for i, row in st.session_state.questions.iterrows():
@@ -223,15 +194,13 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
         answers_text = "\n".join(all_answers)
 
-        # SAVE INCLUDING TAB SWITCH COUNT
         r_sheet.append_row([
             str(datetime.now()),
             name,
             reg_no,
             answers_text,
             total_score,
-            max_score,
-            st.session_state.tab_switch_count   # ✅ NEW
+            max_score
         ])
 
         st.success(f"✅ Submitted! Score: {total_score}/{max_score}")
