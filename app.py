@@ -54,19 +54,35 @@ if "questions" not in st.session_state:
     st.session_state.questions = None
 
 # -------------------------------
-# 🖥️ FULLSCREEN + ANTI-CHEATING
+# 🎓 STUDENT INFO
+# -------------------------------
+st.title("🎓 AI-Based Viva System")
+
+name = st.text_input("Enter Name")
+reg_no = st.text_input("Enter Registration Number")
+
+# -------------------------------
+# 🖥️ FULLSCREEN BUTTON (WORKING)
 # -------------------------------
 html("""
 <script>
 function startViva() {
     let elem = document.body;
+
     if (elem.requestFullscreen) {
         elem.requestFullscreen();
     }
 
-    document.getElementById("start_hidden").click();
+    // Find and click Streamlit hidden button
+    const buttons = window.parent.document.querySelectorAll("button");
+    buttons.forEach(btn => {
+        if (btn.innerText === "Start Viva Hidden") {
+            btn.click();
+        }
+    });
 }
 
+// Tab switch warning
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         alert("⚠️ Tab switched! This activity is monitored.");
@@ -84,18 +100,10 @@ document.addEventListener("visibilitychange", function() {
 ">
 🚀 Start Viva (Full Screen)
 </button>
-""")
+""", height=80)
 
-# Hidden Streamlit button
-start_clicked = st.button("hidden_start", key="start_hidden")
-
-# -------------------------------
-# 🎓 UI
-# -------------------------------
-st.title("🎓 AI-Based Viva System")
-
-name = st.text_input("Enter Name")
-reg_no = st.text_input("Enter Registration Number")
+# Hidden button (triggered by JS)
+start_clicked = st.button("Start Viva Hidden")
 
 # -------------------------------
 # ▶️ START LOGIC
@@ -150,7 +158,7 @@ if st.session_state.questions is not None:
 def evaluate_answer(ans):
     if not ans.strip():
         return 0
-    return 6  # placeholder score
+    return 6  # placeholder
 
 # -------------------------------
 # 🚀 SUBMIT
@@ -169,7 +177,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
         answers_text = "\n".join(all_answers)
 
-        # ✅ Save ONE ROW ONLY
+        # Save ONE row only
         r_sheet.append_row([
             str(datetime.now()),
             name,
