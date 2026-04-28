@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import gspread
 import time
+from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from streamlit.components.v1 import html
@@ -150,7 +151,12 @@ if st.session_state.start_time:
 # -------------------------------
 # ⏱️ TIMER
 # -------------------------------
-DURATION = 600  # 10 minutes
+# Auto refresh every second
+if st.session_state.start_time and not st.session_state.submitted:
+    st_autorefresh(interval=1000, key="timer_refresh")
+
+# Timer logic
+DURATION = 600
 
 if st.session_state.start_time:
     elapsed = time.time() - st.session_state.start_time
@@ -163,7 +169,6 @@ if st.session_state.start_time:
     else:
         st.error("⛔ Time Over! Auto-submitting...")
         st.session_state.submitted = True
-
 # -------------------------------
 # ❓ QUESTIONS
 # -------------------------------
