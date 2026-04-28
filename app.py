@@ -13,17 +13,17 @@ st.set_page_config(page_title="AI Viva System", layout="wide")
 
 st.markdown("""
 <style>
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
+#MainMenu, footer, header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------
 # 🔐 GOOGLE SHEETS CONNECTION
 # -------------------------------
-scope = ["https://spreadsheets.google.com/feeds",
-         "https://www.googleapis.com/auth/drive"]
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
 
 creds = ServiceAccountCredentials.from_json_keyfile_dict(
     st.secrets["gcp_service_account"], scope
@@ -47,17 +47,13 @@ data = load_data()
 # -------------------------------
 # 🧠 SESSION STATE
 # -------------------------------
-if "start_time" not in st.session_state:
-    st.session_state.start_time = None
-
-if "submitted" not in st.session_state:
-    st.session_state.submitted = False
-
-if "questions" not in st.session_state:
-    st.session_state.questions = None
-
-if "tab_switch_count" not in st.session_state:
-    st.session_state.tab_switch_count = 0
+for key, default in {
+    "start_time": None,
+    "submitted": False,
+    "questions": None,
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 # -------------------------------
 # 🎓 STUDENT INFO
@@ -68,60 +64,65 @@ name = st.text_input("Enter Name")
 reg_no = st.text_input("Enter Registration Number")
 
 # -------------------------------
-# 🖥️ FULLSCREEN + TAB SWITCH JS
+# 🖥️ FULLSCREEN + TAB TRACKING JS
 # -------------------------------
 html("""
 <script>
-function startViva() {
-    let elem = document.body;
-
-    if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-    }
-
-    const buttons = window.parent.document.querySelectorAll("button");
-    buttons.forEach(btn => {
-        if (btn.innerText === "Start Viva Hidden") {
-            btn.click();
-        }
-    });
-}
-
-// Initialize counter if not exists
+// Initialize storage
 if (!localStorage.getItem("tabSwitchCount")) {
     localStorage.setItem("tabSwitchCount", "0");
 }
 
-// TAB SWITCH TRACKING (ROBUST)
+// Start viva
+function startViva() {
+    let elem = document.body;
+    if (elem.requestFullscreen) elem.requestFullscreen();
+
+    const buttons = window.parent.document.querySelectorAll("button");
+    buttons.forEach(btn => {
+        if (btn.innerText === "Start Viva Hidden") btn.click();
+    });
+}
+
+// Track tab switch
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         let count = parseInt(localStorage.getItem("tabSwitchCount") || "0");
         count += 1;
-
         localStorage.setItem("tabSwitchCount", count);
-
         alert("⚠️ Tab switched! Count: " + count);
     }
 });
 
-// Send value to Streamlit via URL (without reset)
-setInterval(function() {
+// Push value into Streamlit input
+function updateInput() {
     let count = localStorage.getItem("tabSwitchCount") || "0";
+    const input = window.parent.document.querySelector('input[data-testid="tabSwitchInput"]');
+    if (input) {
+        input.value = count;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
 
-    const url = new URL(window.location);
-    url.searchParams.set("tab_switch", count);
-
-    window.history.replaceState(null, "", url);
-}, 1000);
+// Update every second
+setInterval(updateInput, 1000);
 </script>
 
-<button onclick="startViva()" style="padding:12px;font-size:18px;background-color:#4CAF50;color:white;border:none;border-radius:5px;">
+<button onclick="startViva()" style="padding:12px;font-size:18px;background:#4CAF50;color:white;border:none;border-radius:5px;">
 🚀 Start Viva (Full Screen)
 </button>
-""", height=80)
+""", height=90)
 
-# Hidden button
+# Hidden button trigger
 start_clicked = st.button("Start Viva Hidden")
+
+# Hidden input (bridge)
+tab_switch_live = st.text_input(
+    "tabSwitchInput",
+    value="0",
+    key="tabSwitchInput",
+    label_visibility="collapsed"
+)
 
 # -------------------------------
 # ▶️ START LOGIC
@@ -131,29 +132,12 @@ if start_clicked:
         st.session_state.start_time = time.time()
 
         if data.empty:
-            st.error("❌ No questions found in Google Sheet!")
+            st.error("❌ No questions found!")
             st.stop()
 
         st.session_state.questions = data.sample(min(5, len(data)))
     else:
         st.warning("Please enter all details")
-
-# -------------------------------
-# 🔁 CAPTURE TAB SWITCH COUNT
-# -------------------------------
-params = st.query_params
-
-if "tab_switch" in params:
-    try:
-        new_count = int(params["tab_switch"])
-        if new_count > st.session_state.tab_switch_count:
-            st.session_state.tab_switch_count = new_count
-    except:
-        pass
-
-# Show counter
-if st.session_state.start_time:
-    st.warning(f"⚠️ Tab Switch Count: {st.session_state.tab_switch_count}")
 
 # -------------------------------
 # ⏱️ TIMER
@@ -164,10 +148,10 @@ if st.session_state.start_time:
     elapsed = time.time() - st.session_state.start_time
     remaining = int(DURATION - elapsed)
 
+    st.warning(f"⚠️ Tab Switch Count: {tab_switch_live}")
+
     if remaining > 0:
-        mins = remaining // 60
-        secs = remaining % 60
-        st.warning(f"⏳ Time Left: {mins:02d}:{secs:02d}")
+        st.warning(f"⏳ Time Left: {remaining//60:02d}:{remaining%60:02d}")
     else:
         st.error("⛔ Time Over! Auto-submitting...")
         st.session_state.submitted = True
@@ -180,8 +164,7 @@ answers = {}
 if st.session_state.questions is not None:
     for i, row in st.session_state.questions.iterrows():
         st.subheader(f"Q{i+1}: {row['question']}")
-        ans = st.text_area("Your Answer", key=i)
-        answers[row["id"]] = ans
+        answers[row["id"]] = st.text_area("Your Answer", key=i)
 
 # -------------------------------
 # 🧠 SCORING
@@ -210,8 +193,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
         max_score = 0
         all_answers = []
 
-        for i, row in st.session_state.questions.iterrows():
-
+        for _, row in st.session_state.questions.iterrows():
             student_ans = answers.get(row["id"], "")
             keywords = row.get("keywords", "")
 
@@ -219,10 +201,12 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
             total_score += score
             max_score += 10
-
             all_answers.append(f"Q{row['id']}: {student_ans}")
 
         answers_text = "\n".join(all_answers)
+
+        # ✅ FINAL TAB COUNT (SAFE)
+        final_tab_count = int(tab_switch_live) if tab_switch_live.isdigit() else 0
 
         r_sheet.append_row([
             str(datetime.now()),
@@ -231,7 +215,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
             answers_text,
             total_score,
             max_score,
-            st.session_state.tab_switch_count
+            final_tab_count
         ])
 
         st.success(f"✅ Submitted! Score: {total_score}/{max_score}")
