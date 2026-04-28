@@ -80,7 +80,6 @@ function startViva() {
         elem.requestFullscreen();
     }
 
-    // Trigger hidden Streamlit button
     const buttons = window.parent.document.querySelectorAll("button");
     buttons.forEach(btn => {
         if (btn.innerText === "Start Viva Hidden") {
@@ -89,18 +88,34 @@ function startViva() {
     });
 }
 
-// TAB SWITCH TRACKING
+// ✅ FIXED TAB SWITCH TRACKING
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         tabSwitchCount += 1;
 
         alert("⚠️ Tab switched! Count: " + tabSwitchCount);
 
+        // Store in URL
         const url = new URL(window.location);
         url.searchParams.set("tab_switch", tabSwitchCount);
-        window.history.replaceState(null, "", url);
+
+        // ✅ FORCE PAGE RELOAD (CRITICAL FIX)
+        window.location.href = url.toString();
     }
 });
+</script>
+
+<button onclick="startViva()" style="
+    padding:12px;
+    font-size:18px;
+    background-color:#4CAF50;
+    color:white;
+    border:none;
+    border-radius:5px;
+">
+🚀 Start Viva (Full Screen)
+</button>
+""", height=80)
 </script>
 
 <button onclick="startViva()" style="
@@ -141,7 +156,12 @@ params = st.query_params
 
 if "tab_switch" in params:
     try:
-        st.session_state.tab_switch_count = int(params["tab_switch"])
+        new_count = int(params["tab_switch"])
+
+        # Keep maximum (avoid reset issues)
+        if new_count > st.session_state.tab_switch_count:
+            st.session_state.tab_switch_count = new_count
+
     except:
         pass
 
