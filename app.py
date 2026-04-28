@@ -156,7 +156,7 @@ if st.session_state.start_time and not st.session_state.submitted:
     st_autorefresh(interval=1000, key="timer_refresh")
 
 # Timer logic
-DURATION = 600
+DURATION = 300
 
 if st.session_state.start_time:
     elapsed = time.time() - st.session_state.start_time
