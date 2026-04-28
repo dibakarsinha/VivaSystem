@@ -31,8 +31,9 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 
 client = gspread.authorize(creds)
 
-# 👉 Recommended: use URL instead of name (avoids APIError)
-sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s/edit?gid=2087437842#gid=2087437842")
+sheet = client.open_by_url(
+    "https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s/edit?gid=2087437842#gid=2087437842"
+)
 
 q_sheet = sheet.worksheet("questions")
 r_sheet = sheet.worksheet("responses")
@@ -88,44 +89,22 @@ function startViva() {
     });
 }
 
-// ✅ FIXED TAB SWITCH TRACKING
+// TAB SWITCH TRACKING (FIXED)
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         tabSwitchCount += 1;
 
         alert("⚠️ Tab switched! Count: " + tabSwitchCount);
 
-        // Store in URL
         const url = new URL(window.location);
         url.searchParams.set("tab_switch", tabSwitchCount);
 
-        // ✅ FORCE PAGE RELOAD (CRITICAL FIX)
-        window.location.href = url.toString();
+        window.location.href = url.toString(); // force reload
     }
 });
 </script>
 
-<button onclick="startViva()" style="
-    padding:12px;
-    font-size:18px;
-    background-color:#4CAF50;
-    color:white;
-    border:none;
-    border-radius:5px;
-">
-🚀 Start Viva (Full Screen)
-</button>
-""", height=80)
-</script>
-
-<button onclick="startViva()" style="
-    padding:12px;
-    font-size:18px;
-    background-color:#4CAF50;
-    color:white;
-    border:none;
-    border-radius:5px;
-">
+<button onclick="startViva()" style="padding:12px;font-size:18px;background-color:#4CAF50;color:white;border:none;border-radius:5px;">
 🚀 Start Viva (Full Screen)
 </button>
 """, height=80)
@@ -145,7 +124,6 @@ if start_clicked:
             st.stop()
 
         st.session_state.questions = data.sample(min(5, len(data)))
-
     else:
         st.warning("Please enter all details")
 
@@ -157,15 +135,12 @@ params = st.query_params
 if "tab_switch" in params:
     try:
         new_count = int(params["tab_switch"])
-
-        # Keep maximum (avoid reset issues)
         if new_count > st.session_state.tab_switch_count:
             st.session_state.tab_switch_count = new_count
-
     except:
         pass
 
-# Show counter during viva
+# Show counter
 if st.session_state.start_time:
     st.warning(f"⚠️ Tab Switch Count: {st.session_state.tab_switch_count}")
 
@@ -190,14 +165,12 @@ if st.session_state.start_time:
 # ❓ QUESTIONS
 # -------------------------------
 answers = {}
-all_answers = []
 
 if st.session_state.questions is not None:
     for i, row in st.session_state.questions.iterrows():
         st.subheader(f"Q{i+1}: {row['question']}")
         ans = st.text_area("Your Answer", key=i)
         answers[row["id"]] = ans
-        all_answers.append(f"Q{row['id']}: {ans}")
 
 # -------------------------------
 # 🧠 SCORING
@@ -240,7 +213,6 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
         answers_text = "\n".join(all_answers)
 
-        # SAVE WITH TAB SWITCH COUNT
         r_sheet.append_row([
             str(datetime.now()),
             name,
