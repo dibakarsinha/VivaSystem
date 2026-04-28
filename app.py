@@ -42,7 +42,7 @@ def load_data():
 
 data = load_data()
 st.write("DEBUG: Rows =", len(data))
-st.write(data)
+# st.write(data)
 # -------------------------------
 # 🖥️ FULLSCREEN + ANTI-CHEATING
 # -------------------------------
