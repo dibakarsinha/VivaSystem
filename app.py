@@ -81,10 +81,11 @@ function startViva() {
         }
     });
 }
-
+tabSwitch = 0;
 // Tab switch warning
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
+        tabSwitch = tabSwitch+1;
         alert("⚠️ Tab switched! This activity is monitored.");
     }
 });
@@ -200,7 +201,8 @@ if st.button("Submit Viva") or st.session_state.submitted:
             reg_no,
             answers_text,
             total_score,
-            max_score
+            max_score,
+            tabSwitch     
         ])
 
         st.success(f"✅ Submitted! Score: {total_score}/{max_score}")
