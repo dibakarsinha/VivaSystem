@@ -72,8 +72,6 @@ reg_no = st.text_input("Enter Registration Number")
 # -------------------------------
 html("""
 <script>
-let tabSwitchCount = 0;
-
 function startViva() {
     let elem = document.body;
 
@@ -89,19 +87,32 @@ function startViva() {
     });
 }
 
-// TAB SWITCH TRACKING (FIXED)
+// Initialize counter if not exists
+if (!localStorage.getItem("tabSwitchCount")) {
+    localStorage.setItem("tabSwitchCount", "0");
+}
+
+// TAB SWITCH TRACKING (ROBUST)
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
-        tabSwitchCount += 1;
+        let count = parseInt(localStorage.getItem("tabSwitchCount") || "0");
+        count += 1;
 
-        alert("⚠️ Tab switched! Count: " + tabSwitchCount);
+        localStorage.setItem("tabSwitchCount", count);
 
-        const url = new URL(window.location);
-        url.searchParams.set("tab_switch", tabSwitchCount);
-
-        window.location.href = url.toString(); // force reload
+        alert("⚠️ Tab switched! Count: " + count);
     }
 });
+
+// Send value to Streamlit via URL (without reset)
+setInterval(function() {
+    let count = localStorage.getItem("tabSwitchCount") || "0";
+
+    const url = new URL(window.location);
+    url.searchParams.set("tab_switch", count);
+
+    window.history.replaceState(null, "", url);
+}, 1000);
 </script>
 
 <button onclick="startViva()" style="padding:12px;font-size:18px;background-color:#4CAF50;color:white;border:none;border-radius:5px;">
