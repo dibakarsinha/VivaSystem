@@ -68,12 +68,10 @@ reg_no = st.text_input("Enter Registration Number")
 # -------------------------------
 html("""
 <script>
-// Initialize storage
 if (!localStorage.getItem("tabSwitchCount")) {
     localStorage.setItem("tabSwitchCount", "0");
 }
 
-// Start viva
 function startViva() {
     let elem = document.body;
     if (elem.requestFullscreen) elem.requestFullscreen();
@@ -84,28 +82,19 @@ function startViva() {
     });
 }
 
-// Track tab switch
+// 🔥 RELIABLE METHOD
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         let count = parseInt(localStorage.getItem("tabSwitchCount") || "0");
         count += 1;
         localStorage.setItem("tabSwitchCount", count);
+
         alert("⚠️ Tab switched! Count: " + count);
+
+        // 🔥 FORCE RELOAD WITH VALUE
+        window.location.href = window.location.pathname + "?tab_switch=" + count;
     }
 });
-
-// Push value into Streamlit input
-function updateInput() {
-    let count = localStorage.getItem("tabSwitchCount") || "0";
-    const input = window.parent.document.querySelector('input[data-testid="tabSwitchInput"]');
-    if (input) {
-        input.value = count;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-}
-
-// Update every second
-setInterval(updateInput, 1000);
 </script>
 
 <button onclick="startViva()" style="padding:12px;font-size:18px;background:#4CAF50;color:white;border:none;border-radius:5px;">
