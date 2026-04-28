@@ -147,7 +147,7 @@ all_answers = []
 
 if st.session_state.questions is not None:
     for i, row in st.session_state.questions.iterrows():
-        st.subheader(f": {row['question']}")
+        st.subheader(f" {row['question']}")
         ans = st.text_area("Your Answer", key=i)
         answers[row["id"]] = ans
         all_answers.append(f"Q{row['id']}: {ans}")
