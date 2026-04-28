@@ -32,7 +32,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 client = gspread.authorize(creds)
 
 sheet = client.open_by_url(
-    "https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s"
+    "https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s/edit?gid=2087437842#gid=2087437842"
 )
 
 q_sheet = sheet.worksheet("questions")
