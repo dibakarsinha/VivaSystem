@@ -155,10 +155,18 @@ if st.session_state.questions is not None:
 # -------------------------------
 # 🤖 AI EVALUATION (PLACEHOLDER)
 # -------------------------------
-def evaluate_answer(ans):
+def evaluate_answer(ans, keywords):
     if not ans.strip():
         return 0
-    return 6  # placeholder
+
+    keyword_score = sum(
+        1 for k in keywords.split(",")
+        if k.strip().lower() in ans.lower()
+    )
+
+    length_score = min(len(ans.split()) // 5, 5)
+
+    return min(keyword_score + length_score, 10)
 
 # -------------------------------
 # 🚀 SUBMIT
