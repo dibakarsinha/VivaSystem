@@ -32,7 +32,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 client = gspread.authorize(creds)
 
 sheet = client.open_by_url(
-    "https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s/edit?gid=2087437842#gid=2087437842"
+    "https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s"
 )
 
 q_sheet = sheet.worksheet("questions")
@@ -51,9 +51,23 @@ for key, default in {
     "start_time": None,
     "submitted": False,
     "questions": None,
+    "tab_switch_count": 0
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
+
+# -------------------------------
+# 🔁 CAPTURE TAB SWITCH FROM URL
+# -------------------------------
+params = st.query_params
+
+if "tab_switch" in params:
+    try:
+        new_val = int(params["tab_switch"])
+        if new_val > st.session_state.tab_switch_count:
+            st.session_state.tab_switch_count = new_val
+    except:
+        pass
 
 # -------------------------------
 # 🎓 STUDENT INFO
@@ -68,6 +82,7 @@ reg_no = st.text_input("Enter Registration Number")
 # -------------------------------
 html("""
 <script>
+// init counter
 if (!localStorage.getItem("tabSwitchCount")) {
     localStorage.setItem("tabSwitchCount", "0");
 }
@@ -82,7 +97,7 @@ function startViva() {
     });
 }
 
-// 🔥 RELIABLE METHOD
+// 🔥 RELIABLE TAB TRACKING
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         let count = parseInt(localStorage.getItem("tabSwitchCount") || "0");
@@ -91,7 +106,7 @@ document.addEventListener("visibilitychange", function() {
 
         alert("⚠️ Tab switched! Count: " + count);
 
-        // 🔥 FORCE RELOAD WITH VALUE
+        // reload with param
         window.location.href = window.location.pathname + "?tab_switch=" + count;
     }
 });
@@ -102,16 +117,8 @@ document.addEventListener("visibilitychange", function() {
 </button>
 """, height=90)
 
-# Hidden button trigger
+# hidden trigger
 start_clicked = st.button("Start Viva Hidden")
-
-# Hidden input (bridge)
-tab_switch_live = st.text_input(
-    "tabSwitchInput",
-    value="0",
-    key="tabSwitchInput",
-    label_visibility="collapsed"
-)
 
 # -------------------------------
 # ▶️ START LOGIC
@@ -137,7 +144,7 @@ if st.session_state.start_time:
     elapsed = time.time() - st.session_state.start_time
     remaining = int(DURATION - elapsed)
 
-    st.warning(f"⚠️ Tab Switch Count: {tab_switch_live}")
+    st.warning(f"⚠️ Tab Switch Count: {st.session_state.tab_switch_count}")
 
     if remaining > 0:
         st.warning(f"⏳ Time Left: {remaining//60:02d}:{remaining%60:02d}")
@@ -194,8 +201,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
         answers_text = "\n".join(all_answers)
 
-        # ✅ FINAL TAB COUNT (SAFE)
-        final_tab_count = int(tab_switch_live) if tab_switch_live.isdigit() else 0
+        final_tab_count = st.session_state.tab_switch_count
 
         r_sheet.append_row([
             str(datetime.now()),
