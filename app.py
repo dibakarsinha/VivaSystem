@@ -53,6 +53,9 @@ if "submitted" not in st.session_state:
 if "questions" not in st.session_state:
     st.session_state.questions = None
 
+if "tab_switch_count" not in st.session_state:
+    st.session_state.tab_switch_count = 0
+
 # -------------------------------
 # 🎓 STUDENT INFO
 # -------------------------------
@@ -62,11 +65,12 @@ name = st.text_input("Enter Name")
 reg_no = st.text_input("Enter Registration Number")
 
 # -------------------------------
-# 🖥️ FULLSCREEN BUTTON (WORKING)
+# 🖥️ FULLSCREEN + TAB SWITCH JS
 # -------------------------------
-tabSwitch = 0;
 html("""
 <script>
+let tabSwitchCount = 0;
+
 function startViva() {
     let elem = document.body;
 
@@ -74,7 +78,7 @@ function startViva() {
         elem.requestFullscreen();
     }
 
-    // Find and click Streamlit hidden button
+    // Trigger hidden Streamlit button
     const buttons = window.parent.document.querySelectorAll("button");
     buttons.forEach(btn => {
         if (btn.innerText === "Start Viva Hidden") {
@@ -83,11 +87,17 @@ function startViva() {
     });
 }
 
-// Tab switch warning
+// Tab switch detection
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
-        tabSwitch = tabSwitch+1;
-        alert("⚠️ Tab switched! This activity is monitored.");
+        tabSwitchCount += 1;
+
+        alert("⚠️ Tab switched! Count: " + tabSwitchCount);
+
+        // Store count in URL
+        const url = new URL(window.location);
+        url.searchParams.set("tab_switch", tabSwitchCount);
+        window.history.replaceState(null, "", url);
     }
 });
 </script>
@@ -104,7 +114,7 @@ document.addEventListener("visibilitychange", function() {
 </button>
 """, height=80)
 
-# Hidden button (triggered by JS)
+# Hidden button
 start_clicked = st.button("Start Viva Hidden")
 
 # -------------------------------
@@ -119,15 +129,28 @@ if start_clicked:
             st.stop()
 
         st.session_state.questions = data.sample(min(5, len(data)))
-
     else:
         st.warning("Please enter all details")
+
+# -------------------------------
+# 🔁 CAPTURE TAB SWITCH COUNT
+# -------------------------------
+params = st.query_params
+
+if "tab_switch" in params:
+    try:
+        st.session_state.tab_switch_count = int(params["tab_switch"])
+    except:
+        pass
+
+# Show count during viva
+if st.session_state.start_time:
+    st.warning(f"⚠️ Tab Switch Count: {st.session_state.tab_switch_count}")
 
 # -------------------------------
 # ⏱️ TIMER
 # -------------------------------
 DURATION = 600  # 10 minutes
-remaining = None
 
 if st.session_state.start_time:
     elapsed = time.time() - st.session_state.start_time
@@ -149,13 +172,13 @@ all_answers = []
 
 if st.session_state.questions is not None:
     for i, row in st.session_state.questions.iterrows():
-        st.subheader(f" {row['question']}")
+        st.subheader(f"Q{i+1}: {row['question']}")
         ans = st.text_area("Your Answer", key=i)
         answers[row["id"]] = ans
         all_answers.append(f"Q{row['id']}: {ans}")
 
 # -------------------------------
-# 🤖 AI EVALUATION (PLACEHOLDER)
+# 🧠 SCORING
 # -------------------------------
 def evaluate_answer(ans, keywords):
     if not ans.strip():
@@ -179,7 +202,6 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
         total_score = 0
         max_score = 0
-
         all_answers = []
 
         for i, row in st.session_state.questions.iterrows():
@@ -196,6 +218,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
 
         answers_text = "\n".join(all_answers)
 
+        # SAVE INCLUDING TAB SWITCH COUNT
         r_sheet.append_row([
             str(datetime.now()),
             name,
@@ -203,7 +226,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
             answers_text,
             total_score,
             max_score,
-            tabSwitch     
+            st.session_state.tab_switch_count   # ✅ NEW
         ])
 
         st.success(f"✅ Submitted! Score: {total_score}/{max_score}")
