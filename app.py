@@ -179,12 +179,15 @@ if st.button("Submit Viva") or st.session_state.submitted:
         max_score = 0
 
         for i, row in st.session_state.questions.iterrows():
-            score = evaluate_answer(answers.get(row["id"], ""))
-            total_score += score
-            max_score += 10
+             student_ans = answers.get(row["id"], "")
+             score, feedback = evaluate_answer(row["question"],row.get("model_answer", ""),student_ans)
+             total_score += score
+             max_score += 10
+             all_answers.append(f"Q{row['id']}: {student_ans}")
+             all_feedback.append(f"Q{row['id']}: {feedback}")
 
         answers_text = "\n".join(all_answers)
-
+        
         # Save ONE row only
         r_sheet.append_row([
             str(datetime.now()),
