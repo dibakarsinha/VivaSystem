@@ -10,7 +10,7 @@ from streamlit.components.v1 import html
 # 🎯 PAGE CONFIG
 # -------------------------------
 st.set_page_config(page_title="AI Viva System", layout="wide")
-
+st.markdown("##  Viva Examination Mode")
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
