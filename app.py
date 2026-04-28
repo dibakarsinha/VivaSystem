@@ -172,7 +172,7 @@ if st.button("Submit Viva") or st.session_state.submitted:
             all_answers.append(f"Q{row['id']}: {student_ans}")
 
         # Convert answers list → single string
-        answers_text = " | ".join(all_answers)
+        answers_text = "\n".join(all_answers)
 
         # ✅ SAVE ONLY ONE ROW
         r_sheet.append_row([
