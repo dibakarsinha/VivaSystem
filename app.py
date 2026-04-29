@@ -32,7 +32,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(
 client = gspread.authorize(creds)
 
 sheet = client.open_by_url(
-    "https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s/edit?gid=2087437842#gid=2087437842"
+    "https://docs.google.com/spreadsheets/d/1bz09BMyKLJ7YZRobi9cP2ltjiYwLM05ouu4KYkpBX-s/edit?gid=0#gid=0"
 )
 
 q_sheet = sheet.worksheet("questions")
@@ -70,6 +70,20 @@ if "tab_switch" in params:
         pass
 
 # -------------------------------
+# 🚨 TAB CONTROL LOGIC (CRITICAL)
+# -------------------------------
+MAX_SWITCH = 2
+
+if st.session_state.start_time:
+
+    if st.session_state.tab_switch_count > 0:
+        st.warning(f"⚠️ Tab switched {st.session_state.tab_switch_count} time(s)")
+
+    if st.session_state.tab_switch_count > MAX_SWITCH:
+        st.error("⛔ Too many tab switches! Auto-submitting...")
+        st.session_state.submitted = True
+
+# -------------------------------
 # 🎓 STUDENT INFO
 # -------------------------------
 st.title("🎓 AI-Based Viva System")
@@ -82,7 +96,6 @@ reg_no = st.text_input("Enter Registration Number")
 # -------------------------------
 html("""
 <script>
-// init counter
 if (!localStorage.getItem("tabSwitchCount")) {
     localStorage.setItem("tabSwitchCount", "0");
 }
@@ -97,7 +110,6 @@ function startViva() {
     });
 }
 
-// 🔥 RELIABLE TAB TRACKING
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         let count = parseInt(localStorage.getItem("tabSwitchCount") || "0");
@@ -106,7 +118,6 @@ document.addEventListener("visibilitychange", function() {
 
         alert("⚠️ Tab switched! Count: " + count);
 
-        // reload with param
         window.location.href = window.location.pathname + "?tab_switch=" + count;
     }
 });
@@ -117,7 +128,6 @@ document.addEventListener("visibilitychange", function() {
 </button>
 """, height=90)
 
-# hidden trigger
 start_clicked = st.button("Start Viva Hidden")
 
 # -------------------------------
@@ -199,20 +209,22 @@ if st.button("Submit Viva") or st.session_state.submitted:
             max_score += 10
             all_answers.append(f"Q{row['id']}: {student_ans}")
 
-        answers_text = "\n".join(all_answers)
+        # 🔥 PENALTY LOGIC
+        penalty = st.session_state.tab_switch_count * 2
+        final_score = max(total_score - penalty, 0)
 
-        final_tab_count = st.session_state.tab_switch_count
+        answers_text = "\n".join(all_answers)
 
         r_sheet.append_row([
             str(datetime.now()),
             name,
             reg_no,
             answers_text,
-            total_score,
+            final_score,
             max_score,
-            final_tab_count
+            st.session_state.tab_switch_count
         ])
 
-        st.success(f"✅ Submitted! Score: {total_score}/{max_score}")
+        st.success(f"✅ Submitted! Score: {final_score}/{max_score}")
         st.session_state.submitted = True
         st.stop()
